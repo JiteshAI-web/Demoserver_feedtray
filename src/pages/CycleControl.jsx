@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { useMqtt } from '../store/MqttContext';
+import ConnectionStatus from '../components/ConnectionStatus';
 
 const CycleControl = () => {
     const [inputValue, setInputValue] = useState('');
@@ -11,12 +12,23 @@ const CycleControl = () => {
 
     const trayStatus = data["feeder/fdtryA00/cycle_status"] || [];
 
-    const latestTrayStatus = trayStatus.length > 0 
-  ? trayStatus[trayStatus.length - 1] 
-  : "No status available";
+    const deviceStatus = data["feeder/fdtryA00/device_status"] || [];
+
+    console.log(deviceStatus);
+    
+
+
+    const latestTrayStatus = trayStatus.length > 0
+        ? trayStatus[trayStatus.length - 1]
+        : "No cycle status available";
 
     console.log(latestTrayStatus);
 
+    const latestDeviceStatus = deviceStatus.length > 0
+        ? deviceStatus[deviceStatus.length - 1]
+        : "No Device status available";
+
+console.log(latestDeviceStatus);
 
 
     const apiUrl = import.meta.env.VITE_API_URL
@@ -62,10 +74,20 @@ const CycleControl = () => {
         <div className="container mx-auto p-4 max-w-6xl">
             <h2 className="text-2xl font-bold mb-6 text-gray-800">Cycle Control</h2>
 
-            <div className="mb-4 flex items-center space-x-2">
-                <p className="text-gray-700 font-medium">Status:</p>
-                <div className="w-60 px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
-                    {latestTrayStatus}
+            <div className="mb-4 flex justify-around ">
+                <div className='flex items-center space-x-2'>
+                    <p className="text-gray-700 font-medium">Cycle Status:</p>
+                    <div className="w-60 px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
+                        {latestTrayStatus}
+                    </div>
+                </div>
+                    <p className='font-bold'>{latestDeviceStatus}</p>
+                <div>
+                    
+                </div>
+
+                <div>
+                    <ConnectionStatus />
                 </div>
             </div>
 
