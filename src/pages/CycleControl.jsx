@@ -15,7 +15,7 @@ const CycleControl = () => {
     const deviceStatus = data["feeder/fdtryA00/device_status"] || [];
 
     console.log(deviceStatus);
-    
+
 
 
     const latestTrayStatus = trayStatus.length > 0
@@ -28,7 +28,7 @@ const CycleControl = () => {
         ? deviceStatus[deviceStatus.length - 1]
         : "No Device status available";
 
-console.log(latestDeviceStatus);
+    console.log(latestDeviceStatus);
 
 
     const apiUrl = import.meta.env.VITE_API_URL
@@ -70,85 +70,93 @@ console.log(latestDeviceStatus);
         fetchData();
     }, [latestTrayStatus]);
 
+    const name = localStorage.getItem('User_name') || 'Guest';
+
     return (
-        <div className="container mx-auto p-4 max-w-6xl">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Cycle Control</h2>
+  <div className="container mx-auto p-4 max-w-6xl">
+  {/* Floating Welcome Message */}
+  <div className="animate-fadeInOut fixed top-18 left-4 z-50 bg-white border-l-4 border-blue-500 shadow-xl rounded-xl px-6 py-4 w-fit max-w-sm">
+    <p className="text-lg font-bold text-gray-800">
+      Welcome, <span className="text-blue-700">{name}</span>
+    </p>
+  </div>
 
-            <div className="mb-4 flex justify-around ">
-                <div className='flex items-center space-x-2'>
-                    <p className="text-gray-700 font-medium">Cycle Status:</p>
-                    <div className="w-60 px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
-                        {latestTrayStatus}
-                    </div>
-                </div>
-                    <p className='font-bold'>{latestDeviceStatus}</p>
-                <div>
-                    
-                </div>
+  {/* Section Title */}
+  <h2 className="text-2xl font-bold mb-6 text-gray-800">Cycle Control</h2>
 
-                <div>
-                    <ConnectionStatus />
-                </div>
-            </div>
+  {/* Status Section */}
+  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+      <p className="text-gray-700 font-medium">Cycle Status:</p>
+      <div className="w-full sm:w-60 px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
+        {latestTrayStatus}
+      </div>
+    </div>
 
+    <p className="font-bold text-gray-800">{latestDeviceStatus}</p>
 
+    <div className="w-full sm:w-auto">
+      <ConnectionStatus />
+    </div>
+  </div>
 
+  {/* Input & Button */}
+  <div className="flex flex-col sm:flex-row mb-6 gap-2 mt-8">
+    <input
+      type="text"
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      placeholder="Enter message..."
+      className="flex-grow px-4 py-2 border border-gray-300 rounded-md sm:rounded-l-md sm:rounded-r-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+    <button
+      onClick={handlePost}
+      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md sm:rounded-r-md sm:rounded-l-none hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      Post
+    </button>
+  </div>
 
-            <div className="flex mb-6">
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Enter message..."
-                    className="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                    onClick={handlePost}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    Post
-                </button>
-            </div>
+  {/* Table or Loading State */}
+  {loading ? (
+    <p className="text-gray-600 mt-5">Loading data...</p>
+  ) : (
+    <div className="overflow-x-auto shadow-md rounded-lg max-h-96 mt-5">
+      <table className="min-w-full bg-white border-collapse text-sm sm:text-base">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">
+              id.
+            </th>
+            <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">
+              cyclecount
+            </th>
+            <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">
+              start_time
+            </th>
+            <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">
+              end_time
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {apiData.map((item, index) => {
+            const { id, cyclecount, start_time, end_time } = item;
+            return (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="py-3 px-4 border-b border-gray-200">{id}</td>
+                <td className="py-3 px-4 border-b border-gray-200">{cyclecount}</td>
+                <td className="py-3 px-4 border-b border-gray-200">{start_time}</td>
+                <td className="py-3 px-4 border-b border-gray-200">{end_time}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
 
-
-
-            {loading ? (
-                <p className="text-gray-600 mt-5">Loading data...</p>
-            ) : (
-                <div className="overflow-auto shadow-md rounded-lg max-h-96 mt-5">
-                    <table className="min-w-full bg-white border-collapse">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">id.</th>
-                                <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">cyclecount</th>
-                                <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">start_time</th>
-                                <th className="py-3 px-4 border-b border-gray-200 text-left text-gray-700 font-semibold">end_time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {apiData.map((item, index) => {
-                                const {
-                                    id,
-                                    cyclecount,
-                                    start_time,
-                                    end_time
-                                } = item;
-                                return (
-                                    <tr key={index} className="hover:bg-gray-50">
-                                        <td className="py-3 px-4 border-b border-gray-200">{id}</td>
-
-                                        <td className="py-3 px-4 border-b border-gray-200">{cyclecount}</td>
-                                        <td className="py-3 px-4 border-b border-gray-200">{start_time}</td>
-                                        <td className="py-3 px-4 border-b border-gray-200">{end_time}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-            )}
-        </div>
     );
 };
 
