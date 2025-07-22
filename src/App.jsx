@@ -5,6 +5,8 @@ import CycleControl from './pages/CycleControl';
 import { useMqtt } from './store/MqttContext';
 import FilterData from './pages/FilterData';
 import Login from './pages/Login';
+import Logout from './pages/Logout';
+
 
 const PrivateRoute = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -63,17 +65,26 @@ const AppLayout = ({ children }) => {
          Feed Tray
         </div>
 
-        {/* Desktop-only connection status (right side) */}
-        <div className="hidden sm:flex items-center gap-2 ml-auto">
-          <span
-            className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            title={`MQTT status: ${connectionStatus}`}
-          />
-          <span className={isConnected ? 'text-green-400' : 'text-red-400'}>
-            {isConnected ? 'Connected' : 'Disconnected'}
-          </span>
+        {/* Right - Connection Status */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+              title={`MQTT status: ${connectionStatus}`}
+            />
+            <span className={isConnected ? 'text-green-400' : 'text-red-400'}>
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+
+          <NavLink
+            to="/logout"
+            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-md transition text-white"
+          >
+            Logout
+          </NavLink>
         </div>
+
       </nav>
 
 
@@ -114,6 +125,7 @@ const App = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/logout" element={<Logout />} />
       </Routes>
     </Router>
   );

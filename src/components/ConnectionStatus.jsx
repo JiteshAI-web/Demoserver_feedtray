@@ -20,7 +20,7 @@ const ConnectionStatus = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            if (Date.now() - lastMessageTimeRef.current > 5000) {
+            if (Date.now() - lastMessageTimeRef.current > 6000) {
                 setConnected("Disconnected");
                 clearTopicData("feeder/fdtryA00/heartbeat");
             }
