@@ -19,11 +19,13 @@ const ScheduleTask = () => {
   const [tableData, setTableData] = useState([]);
 
   const { publishMessage } = useMqtt();
+  const ApiUrl = import.meta.env.VITE_API_URL;
+
 
   // Fetch schedule IDs
   const fetchScheduleIds = async () => {
     try {
-      const response = await axios.get('http://192.168.1.14:8001/get_all_schedule_ids/');
+      const response = await axios.get(`${ApiUrl}/get_all_schedule_ids/`);
       setIds(response.data.schedule_ids || []);
     } catch (error) {
       console.error('Fetch schedule IDs error:', error);
@@ -33,7 +35,7 @@ const ScheduleTask = () => {
   // Fetch all schedules (for table)
   const fetchSchedules = async () => {
     try {
-      const response = await axios.get('http://192.168.1.14:8001/get_all_schedules/');
+      const response = await axios.get(`${ApiUrl}/get_all_schedules/`);
       setTableData(response.data.schedules || []);
     } catch (error) {
       console.error('Fetch schedules error:', error);
@@ -60,7 +62,7 @@ const ScheduleTask = () => {
   const handleRemove = async () => {
     try {
       if (dropdownValue) {
-        const response = await axios.post('http://192.168.1.14:8001/delete_schedule_id/', {
+        const response = await axios.post(`${ApiUrl}/delete_schedule_id/`, {
           schedule_id: dropdownValue,
         });
         if (response.status === 200) {
@@ -87,7 +89,7 @@ const ScheduleTask = () => {
     const start_time = `${formData.date} ${formData.time}`;
 
     try {
-      const response = await axios.post('http://192.168.1.14:8001/create_schedule/', {
+      const response = await axios.post(`${ApiUrl}/create_schedule/`, {
         ...formData,
         start_time,
       });

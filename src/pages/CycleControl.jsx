@@ -100,7 +100,7 @@ const CycleControl = () => {
           <div>
             <button
               onClick={() => publishMessage("feeder/fdtryA00/cycle_abort", "Emergency")}
-              className="relative w-20 h-20 bg-red-700 text-white rounded-full flex items-center justify-center text-lg font-bold uppercase tracking-wide shadow-lg hover:shadow-xl active:scale-95 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-red-300"
+              className="px-6 py-2 bg-red-700 text-white rounded-md flex items-center justify-center text-lg font-bold uppercase tracking-wide shadow-lg hover:shadow-xl active:scale-95 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-red-300"
             >
               Abort
             </button>
