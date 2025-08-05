@@ -62,7 +62,7 @@ const AppLayout = ({ children }) => {
 
         {/* Desktop-only centered title */}
         <div className="hidden sm:block absolute left-1/2 transform -translate-x-1/2 text-xl font-bold tracking-widest text-white">
-         Feed Tray
+          Feed Tray
         </div>
 
         {/* Right - Connection Status */}

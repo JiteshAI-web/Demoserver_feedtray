@@ -14,7 +14,8 @@ export const MqttProvider = ({ children }) => {
     return JSON.parse(localStorage.getItem("mqttData")) || {
       "feeder/fdtryA00/cycle_status": [],
       "feeder/fdtryA00/heartbeat":[],
-      "feeder/fdtryA00/device_status":[]
+      "feeder/fdtryA00/device_status":[],
+      "feeder/fdtryA00/schedule_status":[]
     };
   });
 
@@ -40,7 +41,7 @@ export const MqttProvider = ({ children }) => {
 
     mqttClient.on("connect", () => {
       handleStatusChange("connected");
-      mqttClient.subscribe(["feeder/fdtryA00/cycle_status","feeder/fdtryA00/heartbeat","feeder/fdtryA00/device_status"]);
+      mqttClient.subscribe(["feeder/fdtryA00/cycle_status","feeder/fdtryA00/heartbeat","feeder/fdtryA00/device_status","feeder/fdtryA00/schedule_status"]);
     });
 
     mqttClient.on("reconnect", () => {
