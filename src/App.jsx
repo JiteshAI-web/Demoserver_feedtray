@@ -46,17 +46,17 @@ const AppLayout = ({ children }) => {
         </div>
 
         {/* Mobile-only title + connection in one row */}
-        <div className="flex sm:hidden justify-between items-center w-full px-6">
-          <div className="text-lg font-bold text-white">Pilot Feed Tray</div>
+        <div className="flex sm:hidden items-center w-full px-6 justify-center">
+          <div className="text-xl font-bold text-white justify-center">Feed Tray</div>
           <div className="flex items-center gap-2">
-            <span
+            {/* <span
               className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'
                 }`}
               title={`MQTT status: ${connectionStatus}`}
             />
             <span className={isConnected ? 'text-green-400' : 'text-red-400'}>
               {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
+            </span> */}
           </div>
         </div>
 
@@ -66,7 +66,7 @@ const AppLayout = ({ children }) => {
         </div>
 
         {/* Right - Connection Status */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 justify-center md:justify-start">
           <div className="flex items-center gap-2">
             <span
               className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
