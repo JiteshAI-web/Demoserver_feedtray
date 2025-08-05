@@ -15,7 +15,7 @@ const ConnectionStatus = () => {
         }
     }, [rawStatus]);
 
-    console.log(rawStatus);
+    // console.log(rawStatus);
 
 
     useEffect(() => {

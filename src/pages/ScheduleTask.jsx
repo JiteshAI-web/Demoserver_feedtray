@@ -2,7 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useMqtt } from '../store/MqttContext';
 
-const ScheduleTask = () => {
+const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
   const [formData, setFormData] = useState({
     schedule_id: '',
     date: '',       // YYYY-MM-DD
@@ -36,6 +36,7 @@ const ScheduleTask = () => {
   const fetchSchedules = async () => {
     try {
       const response = await axios.get(`${ApiUrl}/get_all_schedules/`);
+      console.log(response.data.schedules);
       setTableData(response.data.schedules || []);
     } catch (error) {
       console.error('Fetch schedules error:', error);
@@ -47,6 +48,16 @@ const ScheduleTask = () => {
     fetchScheduleIds();
     fetchSchedules();
   }, []);
+
+
+  useEffect(() => {
+    if (latestTrayStatus === "All Cycles Completed Successfully") {
+      fetchSchedules()
+    }
+    if (scheduleStatus === "Abort requested!") {
+      fetchSchedules()
+    }
+  }, [latestTrayStatus, scheduleStatus]);
 
   // Refresh IDs and schedules when tableData changes — but to avoid infinite loops, call manually below
 
@@ -118,9 +129,9 @@ const ScheduleTask = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 flex justify-center">
-      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+      <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         {/* LEFT SIDE: Create Schedule Form */}
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
+        <form onSubmit={handleSubmit} className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Schedule</h2>
 
           {error && (
@@ -213,14 +224,14 @@ const ScheduleTask = () => {
         </form>
 
         {/* RIGHT SIDE: Dropdown + Table */}
-        <div className="flex flex-col gap-6">
+        <div className="md:col-span-2 flex flex-col gap-6">
           {/* Dropdown Section */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
               Remove Schedule
             </h2>
             <div className="flex gap-2 items-end">
-              <div className="flex-1">
+              <div className="w-48">
                 <label className="block text-gray-700 text-sm font-medium mb-2">
                   Select Schedule ID
                 </label>
@@ -247,6 +258,7 @@ const ScheduleTask = () => {
             </div>
           </div>
 
+
           {/* Table Section */}
           <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto overflow-y-auto max-h-96">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
@@ -261,6 +273,7 @@ const ScheduleTask = () => {
                     'Start Time',
                     'Cycle Count',
                     'Recurring Hours',
+                    'Status',
                   ].map((head) => (
                     <th
                       key={head}
@@ -285,6 +298,7 @@ const ScheduleTask = () => {
                       </td>
                       <td className="px-4 py-2">{schedule.cyclecount}</td>
                       <td className="px-4 py-2">{schedule.recurring_hours}</td>
+                      <td className="px-4 py-2">{schedule.status}</td>
                     </tr>
                   ))}
               </tbody>
@@ -293,6 +307,7 @@ const ScheduleTask = () => {
         </div>
       </div>
     </div>
+
   );
 };
 

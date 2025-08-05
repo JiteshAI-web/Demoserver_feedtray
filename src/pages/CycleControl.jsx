@@ -80,38 +80,42 @@ const CycleControl = () => {
 
         {/* Section Title */}
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Cycle Control</h2>
-
         {/* Status Section */}
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-          <div className="flex flex-col gap-2">
+          {/* Status texts - fixed widths */}
+          <div className="flex flex-col gap-2 min-w-[220px]">
             <p className="text-gray-700 font-medium">Cycle Status:</p>
-            <div className="w-full px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
+            <div className="w-full px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center truncate">
               {latestTrayStatus}
             </div>
 
-            <p className="text-gray-700 font-medium">Schedule Status:</p>
-            <div className="w-full px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center">
+            <p className="text-gray-700 font-medium mt-2">Schedule Status:</p>
+            <div className="w-full px-3 py-1 border border-gray-400 rounded bg-gray-100 text-gray-800 text-center truncate">
               {latestScheduleStatus}
             </div>
           </div>
 
-          <p className="font-bold text-gray-800">{latestDeviceStatus}</p>
+          {/* Device status with fixed min width to avoid jump */}
+          <p className="font-bold text-gray-800 min-w-[150px] text-center truncate">
+            {latestDeviceStatus}
+          </p>
 
-          <div>
+          {/* Abort button wrapped in fixed width div to prevent shifting */}
+          <div className="flex-shrink-0">
             <button
-              onClick={() => publishMessage("feeder/fdtryA00/cycle_abort", "Emergency")}
+              onClick={() => publishMessage("feeder/fdtryA00/cycle_abort", "Aborted")}
               className="px-6 py-2 bg-red-700 text-white rounded-md flex items-center justify-center text-lg font-bold uppercase tracking-wide shadow-lg hover:shadow-xl active:scale-95 transition-transform duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-red-300"
             >
               Abort
             </button>
           </div>
 
-          <div className="w-full sm:w-auto">
+          {/* ConnectionStatus - shrink to fit */}
+          <div className="w-full sm:w-auto flex-shrink-0">
             <ConnectionStatus />
           </div>
-
-
         </div>
+
 
         {/* Input & Button */}
         {/* <div className="flex flex-col sm:flex-row mb-6 gap-2 mt-8">
@@ -170,7 +174,7 @@ const CycleControl = () => {
         )} */}
 
       </div>
-      <ScheduleTask />
+      <ScheduleTask latestTrayStatus={latestTrayStatus} scheduleStatus={scheduleStatus} />
     </>
   );
 };
