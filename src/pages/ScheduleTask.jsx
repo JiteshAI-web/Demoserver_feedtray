@@ -8,7 +8,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
     date: '',       // YYYY-MM-DD
     time: '',       // HH:MM
     cyclecount: '',
-    recurring_hours: '',
+    recurring_hours: 0,
   });
 
   const [dropdownValue, setDropdownValue] = useState('');
@@ -108,12 +108,10 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
       if (response.status !== 200) {
         throw new Error('Failed to save schedule');
       }
-
       publishMessage(
         'feeder/fdtryA00/schedule_set',
         `${formData.schedule_id}|${start_time}|${formData.cyclecount}|${formData.recurring_hours}`
       );
-
       setSuccess(true);
       setFormData({ schedule_id: '', date: '', time: '', cyclecount: '', recurring_hours: '' });
 
@@ -121,6 +119,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
       await fetchScheduleIds();
       await fetchSchedules();
     } catch (err) {
+      console.log(err);
       setError(err.message || 'Server error');
     } finally {
       setIsLoading(false);
@@ -135,7 +134,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Schedule</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">schedule already exist or internal server error</div>
           )}
           {success && (
             <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
@@ -198,7 +197,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
           </div>
 
           {/* Recurring Hours */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <label className="block text-gray-700 text-sm font-medium mb-2">
               Recurring Hours
             </label>
@@ -212,7 +211,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
               required
             />
-          </div>
+          </div> */}
 
           <button
             type="submit"
@@ -268,11 +267,10 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
               <thead className="bg-gray-100">
                 <tr>
                   {[
-                    'ID',
+                    'Sl.no.',
                     'Schedule ID',
                     'Start Time',
                     'Cycle Count',
-                    'Recurring Hours',
                     'Status',
                   ].map((head) => (
                     <th
@@ -297,7 +295,6 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
                         {new Date(schedule.start_time).toLocaleString()}
                       </td>
                       <td className="px-4 py-2">{schedule.cyclecount}</td>
-                      <td className="px-4 py-2">{schedule.recurring_hours}</td>
                       <td className="px-4 py-2">{schedule.status}</td>
                     </tr>
                   ))}
