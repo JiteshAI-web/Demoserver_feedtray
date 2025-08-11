@@ -174,7 +174,7 @@ const CycleControl = () => {
         )} */}
 
       </div>
-      <ScheduleTask latestTrayStatus={latestTrayStatus} scheduleStatus={scheduleStatus} />
+      <ScheduleTask latestTrayStatus={latestTrayStatus} />
     </>
   );
 };

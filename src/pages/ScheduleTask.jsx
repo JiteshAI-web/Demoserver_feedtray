@@ -2,7 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useMqtt } from '../store/MqttContext';
 
-const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
+const ScheduleTask = ({ latestTrayStatus }) => {
   const [formData, setFormData] = useState({
     schedule_id: '',
     date: '',       // YYYY-MM-DD
@@ -36,7 +36,7 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
   const fetchSchedules = async () => {
     try {
       const response = await axios.get(`${ApiUrl}/get_all_schedules/`);
-      console.log(response.data.schedules);
+      // console.log(response.data.schedules);
       setTableData(response.data.schedules || []);
     } catch (error) {
       console.error('Fetch schedules error:', error);
@@ -47,17 +47,21 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
   useEffect(() => {
     fetchScheduleIds();
     fetchSchedules();
-  }, []);
+  }, [ids]);
 
+  console.log(latestTrayStatus);
 
   useEffect(() => {
+    if (latestTrayStatus === "Cycle Start") {
+      fetchScheduleIds()
+    }
     if (latestTrayStatus === "All Cycles Completed Successfully") {
       fetchSchedules()
     }
-    if (scheduleStatus === "Abort requested!") {
+    if (latestTrayStatus === "Abort requested!") {
       fetchSchedules()
     }
-  }, [latestTrayStatus, scheduleStatus]);
+  }, [latestTrayStatus]);
 
   // Refresh IDs and schedules when tableData changes — but to avoid infinite loops, call manually below
 
@@ -166,20 +170,30 @@ const ScheduleTask = ({ latestTrayStatus, scheduleStatus }) => {
                 name="date"
                 value={formData.date}
                 onChange={handleChange}
+                min={new Date().toISOString().split("T")[0]}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
                 required
               />
+
             </div>
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">Time</label>
-              <input
-                type="time"
-                name="time"
-                value={formData.time}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
-                required
-              />
+              <div>
+                <input
+                  type="time"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  min={
+                    formData.date === new Date().toISOString().split("T")[0]
+                      ? new Date().toTimeString().slice(0, 5) // HH:MM
+                      : "00:00"
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+
             </div>
           </div>
 
