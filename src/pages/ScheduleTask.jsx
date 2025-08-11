@@ -3,14 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { useMqtt } from '../store/MqttContext';
 
 const ScheduleTask = ({ latestTrayStatus }) => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     schedule_id: '',
-    date: '',       // YYYY-MM-DD
-    time: '',       // HH:MM
+    date: '',
+    time: '',
     cyclecount: '',
     recurring_hours: 0,
-  });
+  };
 
+  const [formData, setFormData] = useState(initialFormState);
   const [dropdownValue, setDropdownValue] = useState('');
   const [ids, setIds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,8 +22,6 @@ const ScheduleTask = ({ latestTrayStatus }) => {
   const { publishMessage } = useMqtt();
   const ApiUrl = import.meta.env.VITE_API_URL;
 
-
-  // Fetch schedule IDs
   const fetchScheduleIds = async () => {
     try {
       const response = await axios.get(`${ApiUrl}/get_all_schedule_ids/`);
@@ -32,11 +31,9 @@ const ScheduleTask = ({ latestTrayStatus }) => {
     }
   };
 
-  // Fetch all schedules (for table)
   const fetchSchedules = async () => {
     try {
       const response = await axios.get(`${ApiUrl}/get_all_schedules/`);
-      // console.log(response.data.schedules);
       setTableData(response.data.schedules || []);
     } catch (error) {
       console.error('Fetch schedules error:', error);
@@ -47,23 +44,19 @@ const ScheduleTask = ({ latestTrayStatus }) => {
   useEffect(() => {
     fetchScheduleIds();
     fetchSchedules();
-  }, [ids]);
-
-  console.log(latestTrayStatus);
+  }, []);
 
   useEffect(() => {
     if (latestTrayStatus === "Cycle Start") {
-      fetchScheduleIds()
+      fetchScheduleIds();
     }
-    if (latestTrayStatus === "All Cycles Completed Successfully") {
-      fetchSchedules()
-    }
-    if (latestTrayStatus === "Abort requested!") {
-      fetchSchedules()
+    if (
+      latestTrayStatus === "All Cycles Completed Successfully" ||
+      latestTrayStatus === "Abort requested!"
+    ) {
+      fetchSchedules();
     }
   }, [latestTrayStatus]);
-
-  // Refresh IDs and schedules when tableData changes — but to avoid infinite loops, call manually below
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -84,11 +77,10 @@ const ScheduleTask = ({ latestTrayStatus }) => {
           console.log('Item removed successfully');
           publishMessage('feeder/fdtryA00/schedule_cancel', `${dropdownValue}`);
 
-          // Refresh IDs and schedules
           await fetchScheduleIds();
           await fetchSchedules();
         }
-        setDropdownValue(''); // Reset dropdown after removal
+        setDropdownValue('');
       }
     } catch (error) {
       console.error('Delete error:', error);
@@ -101,6 +93,13 @@ const ScheduleTask = ({ latestTrayStatus }) => {
     setError('');
     setSuccess(false);
 
+    // Prevent duplicate IDs
+    if (ids.includes(formData.schedule_id)) {
+      setError('Schedule ID already exists');
+      setIsLoading(false);
+      return;
+    }
+
     const start_time = `${formData.date} ${formData.time}`;
 
     try {
@@ -112,18 +111,23 @@ const ScheduleTask = ({ latestTrayStatus }) => {
       if (response.status !== 200) {
         throw new Error('Failed to save schedule');
       }
+
       publishMessage(
         'feeder/fdtryA00/schedule_set',
         `${formData.schedule_id}|${start_time}|${formData.cyclecount}|${formData.recurring_hours}`
       );
-      setSuccess(true);
-      setFormData({ schedule_id: '', date: '', time: '', cyclecount: '', recurring_hours: '' });
 
-      // Refresh IDs and schedules after successful submission
-      await fetchScheduleIds();
-      await fetchSchedules();
+      setSuccess(true);
+      setFormData(initialFormState);
+
+      // Give backend time to update
+      setTimeout(() => {
+        fetchScheduleIds();
+        fetchSchedules();
+      }, 300);
+
     } catch (err) {
-      console.log(err);
+      console.error(err);
       setError(err.message || 'Server error');
     } finally {
       setIsLoading(false);
@@ -133,12 +137,15 @@ const ScheduleTask = ({ latestTrayStatus }) => {
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 flex justify-center">
       <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+
         {/* LEFT SIDE: Create Schedule Form */}
         <form onSubmit={handleSubmit} className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Schedule</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">schedule already exist or internal server error</div>
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+              {error}
+            </div>
           )}
           {success && (
             <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
@@ -174,26 +181,22 @@ const ScheduleTask = ({ latestTrayStatus }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
                 required
               />
-
             </div>
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">Time</label>
-              <div>
-                <input
-                  type="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  min={
-                    formData.date === new Date().toISOString().split("T")[0]
-                      ? new Date().toTimeString().slice(0, 5) // HH:MM
-                      : "00:00"
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-
+              <input
+                type="time"
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
+                min={
+                  formData.date === new Date().toISOString().split("T")[0]
+                    ? new Date().toTimeString().slice(0, 5)
+                    : "00:00"
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
+                required
+              />
             </div>
           </div>
 
@@ -210,23 +213,7 @@ const ScheduleTask = ({ latestTrayStatus }) => {
             />
           </div>
 
-          {/* Recurring Hours */}
-          {/* <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Recurring Hours
-            </label>
-            <input
-              type="number"
-              name="recurring_hours"
-              value={formData.recurring_hours}
-              onChange={handleChange}
-              min="0"
-              max="24"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:outline-none"
-              required
-            />
-          </div> */}
-
+          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}
@@ -238,6 +225,7 @@ const ScheduleTask = ({ latestTrayStatus }) => {
 
         {/* RIGHT SIDE: Dropdown + Table */}
         <div className="md:col-span-2 flex flex-col gap-6">
+
           {/* Dropdown Section */}
           <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
@@ -271,7 +259,6 @@ const ScheduleTask = ({ latestTrayStatus }) => {
             </div>
           </div>
 
-
           {/* Table Section */}
           <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto overflow-y-auto max-h-96">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
@@ -280,13 +267,7 @@ const ScheduleTask = ({ latestTrayStatus }) => {
             <table className="min-w-full table-auto border divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-100">
                 <tr>
-                  {[
-                    'Sl.no.',
-                    'Schedule ID',
-                    'Start Time',
-                    'Cycle Count',
-                    'Status',
-                  ].map((head) => (
+                  {['Sl.no.', 'Schedule ID', 'Start Time', 'Cycle Count', 'Status'].map((head) => (
                     <th
                       key={head}
                       className="px-4 py-2 text-left font-medium text-gray-600 uppercase tracking-wider"
@@ -315,10 +296,10 @@ const ScheduleTask = ({ latestTrayStatus }) => {
               </tbody>
             </table>
           </div>
+
         </div>
       </div>
     </div>
-
   );
 };
 
