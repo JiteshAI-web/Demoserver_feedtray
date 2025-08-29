@@ -25,7 +25,15 @@ const FilterData = () => {
     const handleGetMessages = async () => {
         setDataLoading(true);
         try {
-            const response = await axios.get(`${apiUrl}/getall_cycle/`);
+            const start = format(dateRange[0].startDate, "yyyy-MM-dd");
+            const end = format(dateRange[0].endDate, "yyyy-MM-dd");
+
+            const response = await axios.get(`${apiUrl}/getall_cycle/`, {
+                params: {
+                    start_date: start,
+                    end_date: end,
+                },
+            });
 
             console.log("📥 GET success:", response.data);
             setFuelEntries(response.data || []);
@@ -36,20 +44,21 @@ const FilterData = () => {
         }
     };
 
+
     const handleCSVDownload = async () => {
         setDownloadLoading(true);
         try {
             const start = format(dateRange[0].startDate, "yyyy-MM-dd");
             const end = format(dateRange[0].endDate, "yyyy-MM-dd");
 
-            const response = await axios.post(`${apiUrl}/download_csv/`, 
-                 {
+            const response = await axios.post(`${apiUrl}/download_csv/`,
+                {
                     from_date: start,
                     to_date: end,
                 },
-               {
-                 responseType: "blob",
-               }
+                {
+                    responseType: "blob",
+                }
             );
 
             const blob = new Blob([response.data], { type: "text/csv" });
