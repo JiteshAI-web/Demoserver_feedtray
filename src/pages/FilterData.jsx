@@ -1,11 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { DateRange } from "react-date-range";
 import { format } from "date-fns";
+import { initialCycleLogs } from "../utils/mockData";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
-
-const apiUrl = import.meta.env.VITE_API_URL;
 
 const FilterData = () => {
     const [showStartCalendar, setShowStartCalendar] = useState(false);
@@ -22,58 +20,38 @@ const FilterData = () => {
 
     const [fuelEntries, setFuelEntries] = useState([]);
 
-    const handleGetMessages = async () => {
+    const handleGetMessages = () => {
         setDataLoading(true);
-        try {
-            const start = format(dateRange[0].startDate, "yyyy-MM-dd");
-            const end = format(dateRange[0].endDate, "yyyy-MM-dd");
-
-            const response = await axios.get(`${apiUrl}/getall_cycle/`, {
-                params: {
-                    start_date: start,
-                    end_date: end,
-                },
-            });
-
-            console.log("📥 GET success:", response.data);
-            setFuelEntries(response.data || []);
-        } catch (error) {
-            console.error("❌ GET error:", error);
-        } finally {
+        setTimeout(() => {
+            setFuelEntries(initialCycleLogs);
             setDataLoading(false);
-        }
+        }, 200);
     };
 
-
-    const handleCSVDownload = async () => {
+    const handleCSVDownload = () => {
         setDownloadLoading(true);
-        try {
+        setTimeout(() => {
             const start = format(dateRange[0].startDate, "yyyy-MM-dd");
             const end = format(dateRange[0].endDate, "yyyy-MM-dd");
+            
+            const entriesToExport = fuelEntries.length > 0 ? fuelEntries : initialCycleLogs;
+            
+            let csvContent = "id,cyclecount,start_time,end_time\n";
+            entriesToExport.forEach((item) => {
+                csvContent += `${item.id},${item.cyclecount},${item.start_time},${item.end_time}\n`;
+            });
 
-            const response = await axios.post(`${apiUrl}/download_csv/`,
-                {
-                    from_date: start,
-                    to_date: end,
-                },
-                {
-                    responseType: "blob",
-                }
-            );
-
-            const blob = new Blob([response.data], { type: "text/csv" });
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.setAttribute("download", "feedtray_data.csv");
+            link.setAttribute("download", `feedtray_data_${start}_to_${end}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        } catch (error) {
-            console.error("❌ Download failed:", error.response || error);
-        } finally {
+            window.URL.revokeObjectURL(url);
             setDownloadLoading(false);
-        }
+        }, 300);
     };
 
     return (

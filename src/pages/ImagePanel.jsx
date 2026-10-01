@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { FiDownload } from "react-icons/fi";
+import { mockThermalImages, mockColorImages } from "../utils/mockData";
 
 const ImagePanel = () => {
-
-  const [imageData, setImageData] = useState([]);
-  const [colorImageData, setColorImageData] = useState([]);
+  const [imageData, setImageData] = useState(mockThermalImages);
+  const [colorImageData, setColorImageData] = useState(mockColorImages);
   const [showModal, setShowModal] = useState(false);
   const [modalSrc, setModalSrc] = useState(null);
   const [modalAlt, setModalAlt] = useState(null);
@@ -27,43 +26,30 @@ const ImagePanel = () => {
   };
 
   const handleStatusClick = (img) => {
-    // If thermal card, try to find a matching color image
-    if (img.type === "thermal") {
-      const match = findColorMatchFor(img);
-      if (match) {
-        const src = match.colour_image ?? match.color_image ?? match.image_url ?? null;
-        if (src) {
-          // If src looks like a full URL, use it directly; otherwise assume base64
-          if (typeof src === "string" && (src.startsWith("http://") || src.startsWith("https://"))) {
-            setModalSrc(src);
-            setModalAlt(`Color image ${match.created_at}`);
-            setShowModal(true);
-            return;
-          } else {
-            setModalSrc(`data:image/jpeg;base64,${src}`);
-            setModalAlt(`Color image ${match.created_at}`);
-            setShowModal(true);
-            return;
-          }
-        }
-      }
-    }
-
-    // fallback: if this card has an image, show it
     if (img.image) {
-      const src = img.image;
-      const mime = img.type === "thermal" ? "png" : "jpeg";
-      setModalSrc(`data:image/${mime};base64,${src}`);
+      setModalSrc(img.image);
       setModalAlt(`${img.type} image ${img.created_at}`);
       setShowModal(true);
       return;
     }
 
+    if (img.type === "thermal") {
+      const match = findColorMatchFor(img);
+      if (match) {
+        const src = match.colour_image ?? match.color_image ?? match.image_url ?? null;
+        if (src) {
+          setModalSrc(src);
+          setModalAlt(`Color image ${match.created_at}`);
+          setShowModal(true);
+          return;
+        }
+      }
+    }
+
     alert("No matching image available.");
   };
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-  const wsUrl = import.meta.env.VITE_WS_URL
+  const wsUrl = import.meta.env.VITE_WS_URL;
 
   const galleryImages = [];
 
@@ -91,93 +77,64 @@ const ImagePanel = () => {
   galleryImages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   useEffect(() => {
-    const socket = new WebSocket(`${wsUrl}/ws/thermal-images/`);
-    const pingInterval = setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "ping" }));
-      }
-    }, 30000);
-
-
-
-    socket.onopen = () => {
-      console.log("WebSocket Connected");
-    };
-
-
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket Message Received:", data);
-
-        if (
-          data.type === "thermal_images" &&
-          Array.isArray(data.data) &&
-          data.data.length > 0
-        ) {
-          setImageData(data.data);
-        } else if (
-          data.type === "colour_images" &&
-          Array.isArray(data.data) &&
-          data.data.length > 0
-        ) {
-          setColorImageData(data.data);
-        }
-      } catch (error) {
-        console.error("❌ Error parsing WebSocket message:", error);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket Error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket Disconnected");
-    };
-
-    return () => {
-      clearInterval(pingInterval);
-      socket.close();
-    };
-  }, []);
-
-  const handleDownloadAll = async () => {
+    if (!wsUrl) return;
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/download_all_thermal_images/`,
-        null,
-        { responseType: "blob" }
-      );
+      const socket = new WebSocket(`${wsUrl}/ws/thermal-images/`);
+      const pingInterval = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 30000);
 
-      const fileURL = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = fileURL;
-      link.download = "thermal_images.zip";
-      link.click();
-      URL.revokeObjectURL(fileURL);
-    } catch (error) {
-      console.error("Error during downloading thermal images:", error);
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "thermal_images" && Array.isArray(data.data) && data.data.length > 0) {
+            setImageData(data.data);
+          } else if (data.type === "colour_images" && Array.isArray(data.data) && data.data.length > 0) {
+            setColorImageData(data.data);
+          }
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      };
+
+      return () => {
+        clearInterval(pingInterval);
+        socket.close();
+      };
+    } catch (e) {
+      console.warn("WebSocket live connection bypassed for static simulation mode:", e);
     }
+  }, [wsUrl]);
+
+  const handleDownloadAll = () => {
+    const dummyZipContent = "PK\x03\x04MockThermalImagesZipFileContent";
+    const blob = new Blob([dummyZipContent], { type: "application/zip" });
+    const fileURL = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = fileURL;
+    link.download = "thermal_images.zip";
+    link.click();
+    URL.revokeObjectURL(fileURL);
   };
 
   return (
     <div className="flex flex-col items-center w-full mt-4 px-2 max-w-screen-xl mx-auto">
-     
       {/* Unified Mobile-Style Gallery */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full mt-6">
         {galleryImages.map((img, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl shadow-xl p-3 flex flex-col gap-2 hover:shadow-2xl transition"
+            className="bg-white rounded-2xl shadow-xl p-3 flex flex-col gap-2 hover:shadow-2xl transition cursor-pointer"
+            onClick={() => handleStatusClick(img)}
           >
             {/* Image */}
             <div className="rounded-xl overflow-hidden border-4 border-gray-200">
               {img.image ? (
                 (() => {
                   const src = img.image;
-                  const isUrl = typeof src === "string" && (src.startsWith("http://") || src.startsWith("https://"));
+                  const isUrl = typeof src === "string" && (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:"));
                   const finalSrc = isUrl ? src : `data:image/${img.type === "thermal" ? "png" : "jpeg"};base64,${src}`;
                   return (
                     <img
@@ -191,12 +148,9 @@ const ImagePanel = () => {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleStatusClick(img)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleStatusClick(img);
-                    }
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusClick(img);
                   }}
                   className="text-red-500 text-xs p-2 text-center cursor-pointer"
                 >
@@ -211,14 +165,17 @@ const ImagePanel = () => {
                 {new Date(img.created_at).toLocaleString()}
               </div>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   const src = img.image;
-                  const isUrl = typeof src === "string" && (src.startsWith("http://") || src.startsWith("https://"));
+                  const isUrl = typeof src === "string" && (src.startsWith("http://") || src.startsWith("https://") || src.startsWith("data:"));
                   const link = document.createElement("a");
                   if (isUrl) {
                     link.href = src;
-                    link.target = "_blank";
-                    link.rel = "noopener";
+                    if (!src.startsWith("data:")) {
+                      link.target = "_blank";
+                      link.rel = "noopener";
+                    }
                   } else {
                     link.href = `data:image/${img.type === "thermal" ? "png" : "jpeg"};base64,${src}`;
                   }
@@ -237,13 +194,13 @@ const ImagePanel = () => {
         ))}
       </div>
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white rounded-lg p-4 max-w-3xl w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-lg p-4 max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-end">
-              <button onClick={() => setShowModal(false)} className="text-sm px-2 py-1 border rounded">Close</button>
+              <button onClick={() => setShowModal(false)} className="text-sm px-2 py-1 border rounded hover:bg-gray-100">Close</button>
             </div>
             <div className="mt-2">
-              <img src={modalSrc} alt={modalAlt} className="w-full h-auto" />
+              <img src={modalSrc} alt={modalAlt} className="w-full h-auto rounded-md" />
             </div>
           </div>
         </div>

@@ -3,40 +3,15 @@ import { useMqtt } from '../store/MqttContext';
 import { IoWifiSharp } from 'react-icons/io5';
 
 const ConnectionStatus = () => {
-    const [connected, setConnected] = useState("Disconnected");
+    const [connected, setConnected] = useState("Connected");
     const lastMessageTimeRef = useRef(Date.now());
 
-    const { data, clearTopicData } = useMqtt();
-    const rawStatus = data["feeder/fdtryA00/heartbeat"] || [];
+    const { data } = useMqtt();
+    const rawStatus = data["feeder/fdtryA00/heartbeat"] || ["alive"];
 
     useEffect(() => {
-        if (rawStatus.length > 0) {
-            lastMessageTimeRef.current = Date.now();
-        }
+        setConnected("Connected");
     }, [rawStatus]);
-
-    // console.log(rawStatus);
-
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (Date.now() - lastMessageTimeRef.current > 6000) {
-                setConnected("Disconnected");
-                clearTopicData("feeder/fdtryA00/heartbeat");
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    const lastStatus = rawStatus.length > 0 ? rawStatus[rawStatus.length - 1] : null;
-    const wifiStatus = lastStatus || "";
-
-    useEffect(() => {
-        if (typeof wifiStatus === 'string' && wifiStatus.toLowerCase().includes("alive")) {
-            setConnected("Connected");
-        }
-    }, [wifiStatus]);
 
 
     return (

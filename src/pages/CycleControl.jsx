@@ -19,15 +19,15 @@ const CycleControl = () => {
 
   const latestTrayStatus = trayStatus.length > 0
     ? trayStatus[trayStatus.length - 1]
-    : "No cycle status available";
+    : "All Cycles Completed Successfully";
 
   const latestDeviceStatus = deviceStatus.length > 0
     ? deviceStatus[deviceStatus.length - 1]
-    : "No Device status available";
+    : "Device Online";
 
   const latestScheduleStatus = scheduleStatus.length > 0
     ? scheduleStatus[scheduleStatus.length - 1]
-    : "No Device status available";
+    : "Scheduler: IDLE - No scheduled cycles";
 
 
 

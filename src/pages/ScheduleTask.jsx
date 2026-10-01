@@ -1,6 +1,6 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { useMqtt } from '../store/MqttContext';
+import { initialSchedulesData, initialScheduleIds } from '../utils/mockData';
 
 const ScheduleTask = ({ latestTrayStatus }) => {
   const initialFormState = {
@@ -13,50 +13,73 @@ const ScheduleTask = ({ latestTrayStatus }) => {
 
   const [formData, setFormData] = useState(initialFormState);
   const [dropdownValue, setDropdownValue] = useState('');
-  const [ids, setIds] = useState([]);
+  const [ids, setIds] = useState(initialScheduleIds);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [tableData, setTableData] = useState([]);
+  const [tableData, setTableData] = useState(initialSchedulesData);
 
   const { publishMessage } = useMqtt();
-  const ApiUrl = import.meta.env.VITE_API_URL;
 
-  const fetchScheduleIds = async () => {
-    try {
-      const response = await axios.get(`${ApiUrl}/get_all_schedule_ids/`);
-      setIds(response.data.schedule_ids || []);
-    } catch (error) {
-      console.error('Fetch schedule IDs error:', error);
-    }
+  const getStartTimeMs = (startTimeStr) => {
+    if (!startTimeStr) return 0;
+    const isoStr = startTimeStr.includes('T') ? startTimeStr : startTimeStr.replace(' ', 'T');
+    return new Date(isoStr).getTime() || new Date(startTimeStr).getTime() || 0;
   };
 
-  const fetchSchedules = async () => {
-    try {
-      const response = await axios.get(`${ApiUrl}/get_all_schedules/`);
-      setTableData(response.data.schedules || []);
-    } catch (error) {
-      console.error('Fetch schedules error:', error);
-      setTableData([]);
-    }
-  };
-
+  // Dynamic time-based schedule status tracker (Pending -> Running -> Completed / Aborted)
   useEffect(() => {
-    fetchScheduleIds();
-    fetchSchedules();
-  }, []);
+    const interval = setInterval(() => {
+      const now = Date.now();
 
-  useEffect(() => {
-    if (latestTrayStatus === "Cycle Start") {
-      fetchScheduleIds();
-    }
-    if (
-      latestTrayStatus === "All Cycles Completed Successfully" ||
-      latestTrayStatus === "Abort requested!"
-    ) {
-      fetchSchedules();
-    }
-  }, [latestTrayStatus]);
+      setTableData((prevTable) => {
+        let changed = false;
+
+        const nextTable = prevTable.map((schedule) => {
+          if (schedule.status === 'Removed' || schedule.status === 'Aborted') {
+            return schedule;
+          }
+
+          // Check for Abort action
+          if (latestTrayStatus === 'Aborted' && (schedule.status === 'Running' || schedule.status === 'Pending')) {
+            changed = true;
+            return { ...schedule, status: 'Aborted' };
+          }
+
+          const startTimeMs = getStartTimeMs(schedule.start_time);
+
+          // Transition Pending -> Running when schedule time is reached
+          if (schedule.status === 'Pending' && now >= startTimeMs) {
+            changed = true;
+            publishMessage('feeder/fdtryA00/cycle_status', `Running Cycle ID: ${schedule.schedule_id}`);
+            publishMessage('feeder/fdtryA00/schedule_status', `Scheduler: RUNNING - Schedule ${schedule.schedule_id}`);
+            return {
+              ...schedule,
+              status: 'Running',
+              startedAt: now,
+            };
+          }
+
+          // Transition Running -> Completed after cycle duration (e.g. 10 seconds)
+          if (schedule.status === 'Running') {
+            const runningMs = now - (schedule.startedAt || startTimeMs);
+            if (runningMs >= 10000) {
+              changed = true;
+              publishMessage('feeder/fdtryA00/cycle_status', 'All Cycles Completed Successfully');
+              publishMessage('feeder/fdtryA00/schedule_status', 'Scheduler: IDLE - No scheduled cycles');
+              return { ...schedule, status: 'Completed' };
+            }
+          }
+
+          return schedule;
+        });
+
+        return changed ? nextTable : prevTable;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [latestTrayStatus, publishMessage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,27 +90,20 @@ const ScheduleTask = ({ latestTrayStatus }) => {
     setDropdownValue(e.target.value);
   };
 
-  const handleRemove = async () => {
-    try {
-      if (dropdownValue) {
-        const response = await axios.post(`${ApiUrl}/delete_schedule_id/`, {
-          schedule_id: dropdownValue,
-        });
-        if (response.status === 200) {
-          console.log('Item removed successfully');
-          publishMessage('feeder/fdtryA00/schedule_cancel', `${dropdownValue}`);
-
-          await fetchScheduleIds();
-          await fetchSchedules();
-        }
-        setDropdownValue('');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
+  const handleRemove = () => {
+    if (dropdownValue) {
+      setIds((prev) => prev.filter((id) => id !== dropdownValue));
+      setTableData((prev) =>
+        prev.map((item) =>
+          item.schedule_id === dropdownValue ? { ...item, status: 'Removed' } : item
+        )
+      );
+      publishMessage('feeder/fdtryA00/schedule_cancel', `${dropdownValue}`);
+      setDropdownValue('');
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
@@ -101,37 +117,38 @@ const ScheduleTask = ({ latestTrayStatus }) => {
     }
 
     const start_time = `${formData.date} ${formData.time}`;
+    const nextId = tableData.length > 0 ? Math.max(...tableData.map((d) => d.id)) + 1 : 1;
 
-    try {
-      const response = await axios.post(`${ApiUrl}/create_schedule/`, {
-        ...formData,
-        start_time,
-      });
+    const startTimeMs = getStartTimeMs(start_time);
+    const isTimeNow = Date.now() >= startTimeMs;
 
-      if (response.status !== 200) {
-        throw new Error('Failed to save schedule');
-      }
+    const newSchedule = {
+      id: nextId,
+      schedule_id: formData.schedule_id,
+      start_time: start_time,
+      cyclecount: Number(formData.cyclecount) || 1,
+      status: isTimeNow ? 'Running' : 'Pending',
+      startedAt: isTimeNow ? Date.now() : null,
+    };
 
+    setTableData((prev) => [newSchedule, ...prev]);
+    if (!ids.includes(formData.schedule_id)) {
+      setIds((prev) => [...prev, formData.schedule_id]);
+    }
+
+    if (isTimeNow) {
+      publishMessage('feeder/fdtryA00/cycle_status', `Running Cycle ID: ${formData.schedule_id}`);
+      publishMessage('feeder/fdtryA00/schedule_status', `Scheduler: RUNNING - Schedule ${formData.schedule_id}`);
+    } else {
       publishMessage(
         'feeder/fdtryA00/schedule_set',
         `${formData.schedule_id}|${start_time}|${formData.cyclecount}|${formData.recurring_hours}`
       );
-
-      setSuccess(true);
-      setFormData(initialFormState);
-
-      // Give backend time to update
-      setTimeout(() => {
-        fetchScheduleIds();
-        fetchSchedules();
-      }, 300);
-
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Server error');
-    } finally {
-      setIsLoading(false);
     }
+
+    setSuccess(true);
+    setFormData(initialFormState);
+    setIsLoading(false);
   };
 
   return (
@@ -290,7 +307,23 @@ const ScheduleTask = ({ latestTrayStatus }) => {
                         {new Date(schedule.start_time).toLocaleString()}
                       </td>
                       <td className="px-4 py-2">{schedule.cyclecount}</td>
-                      <td className="px-4 py-2">{schedule.status}</td>
+                      <td className="px-4 py-2">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            schedule.status === 'Running'
+                              ? 'bg-blue-100 text-blue-800 animate-pulse'
+                              : schedule.status === 'Completed'
+                              ? 'bg-green-100 text-green-800'
+                              : schedule.status === 'Aborted'
+                              ? 'bg-red-100 text-red-800'
+                              : schedule.status === 'Pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {schedule.status}
+                        </span>
+                      </td>
                     </tr>
                   ))}
               </tbody>

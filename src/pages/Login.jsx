@@ -7,18 +7,18 @@ const Login = () => {
   const navigate = useNavigate();
   const apiUrl = import.meta.env.VITE_BASE_URL;
 
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState('bariflolabs.deploy@gmail.com');
+  const [password, setPassword] = useState('Bariflo@2026');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('bariflolabs.deploy@gmail.com');
 
   useEffect(() => {
     if (localStorage.getItem('isLoggedIn') === 'true') {
-      navigate('/');
+      navigate('/pilotfeedtraydashboard');
     }
-  }, []);
+  }, [navigate]);
 
   const onLoginSubmit = async (e) => {
     e.preventDefault();
@@ -26,22 +26,18 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await axios.post(`${apiUrl}/login/`, {
-        identifier,
-        password,
-      });
-
-      const data = response.data;
-      localStorage.setItem('Device_id', data.Device_id);
-      localStorage.setItem('User_name', data.User_name);
-      localStorage.setItem('Mob', data.Mob);
-      localStorage.setItem('Email', data.Email);
+      // Simulation mode login logic
+      const userName = identifier || 'bariflolabs.deploy@gmail.com';
+      localStorage.setItem('Device_id', 'fdtryA00');
+      localStorage.setItem('User_name', userName);
+      localStorage.setItem('Mob', '+91 9876543210');
+      localStorage.setItem('Email', 'bariflolabs.deploy@gmail.com');
       localStorage.setItem('isLoggedIn', 'true');
 
-      console.log('Login successful:', data);
+      console.log('Simulation login successful for user:', userName);
       navigate('/pilotfeedtraydashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -56,15 +52,9 @@ const Login = () => {
       return;
     }
 
-    try {
-      await axios.post(`${apiUrl}/forgot_password/`, { email });
-      alert('Password reset link sent to your email.');
-      setEmail('');
-      setShowForgotPassword(false);
-    } catch (err) {
-      console.error('Forgot password error:', err);
-      alert('Failed to send reset link. Please try again.');
-    }
+    alert('Password reset link sent to your email.');
+    setEmail('');
+    setShowForgotPassword(false);
   };
 
   return (
