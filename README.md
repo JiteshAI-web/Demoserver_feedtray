@@ -103,6 +103,26 @@ npm run build
 
 ```bash
 npm run preview
+---
+
+## 🐳 Docker Deployment
+
+### 1. Build Docker Image
+
+```bash
+docker build -t pilot-feedtray-frontend .
+```
+
+### 2. Run Docker Container
+
+```bash
+docker run -d -p 8080:80 --name pilot-feedtray-container pilot-feedtray-frontend
+```
+
+### 3. Access Dashboard
+
+```text
+http://localhost:8080
 ```
 
 ---
